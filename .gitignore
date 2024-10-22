@@ -1,2 +1,8 @@
-envIC
-Videos
+envIC/
+datasets/
+VideosOnly/
+Streetaware/
+Sideseeing/
+copy_folder/
+*.pt
+_pycache_/
