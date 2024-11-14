@@ -6,6 +6,7 @@ from ultralytics import YOLO
 import supervision as sv
 from ultralytics.solutions import ObjectCounter
 
+#FUNCTIONS
 
 def video_explore(vidpath: Optional[str]=None,
                    url: Optional[str]=None, 
@@ -241,5 +242,4 @@ def apply_YoloCounter(vidpath: str,
         cv2.destroyAllWindows()
         return print("Apply_Counter Execution Ended")
     
-
 

@@ -5,4 +5,5 @@ Streetaware/
 Sideseeing/
 copy_folder/
 *.pt
-_pycache_/
+__pycache__/
+frame_group_instances/
