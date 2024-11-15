@@ -5,7 +5,7 @@ import imageio
 import matplotlib.pyplot as plt
 import os
 import random
-
+import ollama
 
 class FrameExtractor:
     def __init__(self, vidpath:str):
@@ -107,13 +107,36 @@ class FrameExtractor:
 
     
 
-# class ImgDescriptor():
+class ImgDescriptor:
+    def __init__(self, model:str, frame_path:str):
+        self.model = model
+        self.prompt = "Describe this image"
+        self.image_path = frame_path
+        self.role = "user"
+
+        res = ollama.chat(model=self.model, messages=[{
+            	'role': self.role,
+        		'content': self.prompt,
+        		'images': [self.image_path]
+        }])
+        
+        self.description = res
+    
+    def get_description(self):
+        return self.description
+    
+    def change_prompt(self, new_prompt:str):
+        print(f'Old prompt: {self.prompt};\nChanging it to: {new_prompt}')
+        self.prompt = new_prompt
+        print('Changed the promp successfully')
+        
 
 
-# class ImgEVecScanner():
+
+# class ImgEVecScanner:
 
 
-# class TextEvecScanner():
+# class TextEvecScanner:
 
 
-# class InstanceGenerator():
+# class InstanceGenerator:
