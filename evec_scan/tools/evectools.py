@@ -119,11 +119,14 @@ class ImgDescriptor:
         		'content': self.prompt,
         		'images': [self.image_path]
         }])
-        
-        self.description = res
+        self.response = res
+        self.description = res['content']
     
     def get_description(self):
         return self.description
+    
+    def get_response(self):
+        return self.response
     
     def change_prompt(self, new_prompt:str):
         print(f'Old prompt: {self.prompt};\nChanging it to: {new_prompt}')
@@ -136,7 +139,23 @@ class ImgDescriptor:
 # class ImgEVecScanner:
 
 
-# class TextEvecScanner:
+class TextEvecScanner:
+    def __init__(self, model:str, text:str):
+        self.model = model
+        self.text = text
+
+        res = ollama.embeddings(
+            model=self.model,
+            prompt = self.text,)
+        
+        self.response = res
+        self.evec = res['embedding']
+    
+    def get_response(self):
+        return self.response
+    
+    def get_evec(self):
+        return self.evec
 
 
 # class InstanceGenerator:
