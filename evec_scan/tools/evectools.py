@@ -109,6 +109,9 @@ class FrameExtractor:
 
 class ImgDescriptor:
     def __init__(self, model:str, frame_path:str):
+        '''
+        Uses Ollama.chat models that can take an "image" input with frame_path as its image input variable
+        '''
         self.model = model
         self.prompt = "Describe this image"
         self.image_path = frame_path
@@ -134,13 +137,73 @@ class ImgDescriptor:
         print('Changed the promp successfully')
         
 
+import keras
+from keras import applications
+
+class ImgEVecScanner:
+    def __init__(self, frame_path:str):
+        '''
+        Uses Keras.applications models that can take an "image" input with frame_path as its image input variable.
+        Since Keras models are imported individually, a list of models is assumed by ImgEvecScanner and can be edited through the classes methods.
+        '''
+        self.models = [applications.DenseNet121(weights='imagenet', include_top=False),
+                       applications.VGG16(weights='imagenet', include_top=False),
+                       applications.VGG16.]
+        self.preprocess_map = {
+        "vgg16": applications.vgg16.preprocess_input,
+        "vgg19": applications.vgg19.preprocess_input,
+        "densenet121": applications.densenet.preprocess_input,
+        "densenet169": applications.densenet.preprocess_input,
+        }
+        self.frame_path = frame_path
+        self.models_to_use_indexes = [x for x in range(0,len(self.models))]
+
+    def add_model(self, Keras_applications_model):
+        try:
+            self.models.append(Keras_applications_model(weights='imagenet', include_top=False))
+        except Exception as e:
+            return print("Error:", e)
+        self.models_to_use_indexes.append(len(self.models)-1)
+        return print(f'the new models list is {self.models}\nmodels that will be used have indexes: {self.models_to_use_indexes}')
+    
+    def get_preprocess_map(self):
+        return self.preprocess_map
+
+    def change_preprocess_map(self, new_preprocess_map:dict):
+        print(f'Old preprocess_map: {self.preprocess_map}')
+        self.preprocess_map = new_preprocess_map
+        return print(f'New preprocess_map: {self.preprocess_map}')
+
+    def models_to_use(self, indexes:list):
+        print(f'Old indexes of models that would be used: {self.models_to_use_indexes}')
+        self.models_to_use_indexes = indexes
+        return print(f'New indexes of models that will be used: {self.models_to_use_indexes}')
+    
+    def get_model_list(self):
+        return self.models
+    
+    def get_models_evecs(self):
+        img = keras.utils.load_img(self.frame_path, target_size=(224,224))
+        img_array = keras.utils.img_to_array(img)
+        img_array = np.expand_dims (img_array, axis=0)
+        for index in self.models_to_use_indexes:
+            model = self.models[index]
+            map = self.preprocess_map.get(model.name.lower())
+            x = map(img_array)
+            features = model.predict(x)
 
 
-# class ImgEVecScanner:
+
+
+
+
 
 
 class TextEvecScanner:
     def __init__(self, model:str, text:str):
+        '''
+        Uses Ollama.embeddings models with text as its prompt input variable
+        '''
         self.model = model
         self.text = text
 
