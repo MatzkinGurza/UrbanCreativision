@@ -148,7 +148,7 @@ class ImgEVecScanner:
         '''
         self.models = [applications.DenseNet121(weights='imagenet', include_top=False),
                        applications.VGG16(weights='imagenet', include_top=False),
-                       applications.VGG16.]
+                    ]
         self.preprocess_map = {
         "vgg16": applications.vgg16.preprocess_input,
         "vgg19": applications.vgg19.preprocess_input,
@@ -186,11 +186,16 @@ class ImgEVecScanner:
         img = keras.utils.load_img(self.frame_path, target_size=(224,224))
         img_array = keras.utils.img_to_array(img)
         img_array = np.expand_dims (img_array, axis=0)
+        evec_list = []
+        names = []
         for index in self.models_to_use_indexes:
             model = self.models[index]
-            map = self.preprocess_map.get(model.name.lower())
+            name = model.name
+            names.append(name)
+            map = self.preprocess_map.get(name)
             x = map(img_array)
-            features = model.predict(x)
+            evec_list.append(model.predict(x))
+        return {'model_indexes':self.models_to_use_indexes, 'model_names':names, 'embedding_vectors': evec_list}
 
 
 
