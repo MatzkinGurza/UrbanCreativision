@@ -139,11 +139,13 @@ class ImgDescriptor:
 
 import keras
 from keras import applications
+from typing import Literal
+from keras.layers import Flatten, GlobalAveragePooling2D, GlobalMaxPooling2D
 
 class ImgEVecScanner:
     def __init__(self, frame_path:str):
         '''
-        Uses Keras.applications models that can take an "image" input with frame_path as its image input variable.
+        Uses Keras.applications models that can take an image input with frame_path as its image input variable.
         Since Keras models are imported individually, a list of models is assumed by ImgEvecScanner and can be edited through the classes methods.
         '''
         self.models = [applications.DenseNet121(weights='imagenet', include_top=False),
@@ -174,7 +176,7 @@ class ImgEVecScanner:
         self.preprocess_map = new_preprocess_map
         return print(f'New preprocess_map: {self.preprocess_map}')
 
-    def models_to_use(self, indexes:list):
+    def change_models_to_use(self, indexes:list):
         print(f'Old indexes of models that would be used: {self.models_to_use_indexes}')
         self.models_to_use_indexes = indexes
         return print(f'New indexes of models that will be used: {self.models_to_use_indexes}')
@@ -182,24 +184,32 @@ class ImgEVecScanner:
     def get_model_list(self):
         return self.models
     
-    def get_models_evecs(self):
+    def get_models_evecs(self, lin_method:Literal['Flatten', 'GMP', 'GAP' ]):
         img = keras.utils.load_img(self.frame_path, target_size=(224,224))
         img_array = keras.utils.img_to_array(img)
         img_array = np.expand_dims (img_array, axis=0)
         evec_list = []
         names = []
+        vec_dtypes =[]
+        vec_shapes = []
         for index in self.models_to_use_indexes:
             model = self.models[index]
             name = model.name
             names.append(name)
             map = self.preprocess_map.get(name)
             x = map(img_array)
-            evec_list.append(model.predict(x))
-        return {'model_indexes':self.models_to_use_indexes, 'model_names':names, 'embedding_vectors': evec_list}
-
-
-
-
+            if lin_method=='GMP':
+                lin_layer=GlobalMaxPooling2D()
+            elif lin_method=='GAP':
+                lin_layer=GlobalAveragePooling2D()
+            elif lin_method=='Flatten':
+                lin_layer=Flatten()
+            tensor = lin_layer(model.predict(x))
+            evec_list.append(tensor.numpy())
+            vec_dtypes.append(tensor.dtype)
+            vec_shapes.append(tensor.shape)
+        return {'model_index':self.models_to_use_indexes, 'model_name':names, 
+                'embedding_vector': evec_list, 'vector_shape':vec_shapes, 'vector_dtype':vec_dtypes}
 
 
 
@@ -226,4 +236,5 @@ class TextEvecScanner:
         return self.evec
 
 
-# class InstanceGenerator:
+class InstanceGenerator:
+    def 
