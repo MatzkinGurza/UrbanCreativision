@@ -219,7 +219,6 @@ class ImgEVecScanner:
 
 
 
-
 class TextEvecScanner:
     def __init__(self, model:str, text:str):
         '''
@@ -276,23 +275,42 @@ class InstanceGenerator:
             self.structure = structure
         return structure #this is a dictionary with the image arrays, the frame numbers and the saved frame paths
     
-    def get_descriptions(self, model_list:str):
-        structure = self.frame_structure
+    def get_descriptions(self, ollama_model_list:str):
+        structure = self.structure
         if not structure:
             return print('before getting decriptin you must get instance_frames')
         else:
             structure['descriptions'] = []
-            for frame_path in self.frame_structure['frame_paths']:
+            for frame_path in structure['frame_paths']:
                 description_list = []
-                for model in model_list: 
+                for model in ollama_model_list: 
                     descriptor = ImgDescriptor(model, frame_path=frame_path)
                     description_list.append(descriptor.get_description())
                 structure['descriptions'].append(description_list)
-            structure['description_models'] = model_list
+            structure['description_models'] = ollama_model_list
             self.structure = structure
         return structure #this is a dictionary with the image arrays, the frame numbers and the saved frame paths, descriptions and description models
     
+    def get_description_embeddings(self, ollama_model_list:list[str]):
+        structure = self.structure
+        if not structure['descriptions']:
+            return print('before getting embedding vector of description you must get_descriptions')
+        else:
+            structure['description_evecs'] = []
+            for frame_descriptions in structure['descriptions']:
+                desc_evec_list = []
+                for desc in frame_descriptions:
+                    model_evec_list = []
+                    for model in ollama_model_list: 
+                        txtevec = TextEvecScanner(model, text=desc)
+                        model_evec_list.append(txtevec.get_evec())
+                    desc_evec_list.append(model_evec_list)
+                structure['description_evecs'].append(desc_evec_list)
+            structure['text_embedding_models'] = ollama_model_list
+            self.structure = structure
+        return structure #this is a dictionary with the image arrays, the frame numbers and the saved frame paths, descriptions and description models
     
+
     
 
 
