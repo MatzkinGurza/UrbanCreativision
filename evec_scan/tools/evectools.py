@@ -82,7 +82,10 @@ class FrameExtractor:
             self.structure = frame_extractor.get_frames_from_list(group_set)
             self.frames = self.structure['frame']
             self.groupname = ''
-        
+
+        def get_structure(self):
+            return self.structure
+
         def show_frame(self, frame_num: int):
             frame_index = self.structure['frame_number'].index(frame_num) 
             frame = self.structure['frame'][frame_index]
@@ -91,17 +94,20 @@ class FrameExtractor:
             plt.axis('off')  # Hide axes
             plt.show()
 
-        def save_group(self, group_name:str, output_dir:str) -> str:
+        def save_group(self, group_name:str, output_dir:str) -> list:
             # Ensure the output directory exists
             self.groupname = group_name
             os.makedirs(output_dir, exist_ok=True)
             try:
+                frame_paths = []
                 for num, frame in zip(*self.structure.values()):
                     output_path = os.path.join(output_dir, f'{group_name}_{num}.jpg')
+                    frame_paths.append(output_path)
                     imageio.imwrite(output_path, frame)
             except Exception as e:
                 return print("Error:", e)
-            return print('files were succesfully saved')
+            print('files were succesfully saved')
+            return frame_paths
 
 
 
@@ -139,14 +145,14 @@ class ImgDescriptor:
 
 import keras
 from keras import applications
-from typing import Literal
+from typing import Literal, Optional
 from keras.layers import Flatten, GlobalAveragePooling2D, GlobalMaxPooling2D
 
 class ImgEVecScanner:
     def __init__(self, frame_path:str):
         '''
-        Uses Keras.applications models that can take an image input with frame_path as its image input variable.
-        Since Keras models are imported individually, a list of models is assumed by ImgEvecScanner and can be edited through the classes methods.
+        Uses Keras.applications models that can take an image input with frame_path as its image input variable.<p> 
+        Since Keras models are imported individually, a list of models is assumed by ImgEvecScanner and can be edited through the classes methods.<p> 
         '''
         self.models = [applications.DenseNet121(weights='imagenet', include_top=False),
                        applications.VGG16(weights='imagenet', include_top=False),
@@ -237,4 +243,59 @@ class TextEvecScanner:
 
 
 class InstanceGenerator:
-    def 
+    def __init__(self, instance_dir, vid_file, instance_name):
+        '''
+        to build an instance, you must create a directory containing the video file to be anayzed in the instance.<p> 
+        It is recommended to have only one video file per instance directory for organization purposes.<p> 
+        The instance_name attribute will be used as a part of resulting instance paths, considering that, do not use big names, neither blank spaces or punctuation.<p> 
+        vid_path must be the name of the video file inside the insance_dir, including extension like ".mp4".<p> 
+        '''
+        self.instance_path = instance_dir
+        self.vidpath = os.path.join(instance_dir, vid_file)
+        self.frame_group_name = instance_name
+        self.structure = None
+    
+    def generate_instance_frames(self, 
+                                 frame_quant:Optional[int], 
+                                 frame_num_list:Optional[set[int]], 
+                                 from_list:bool=False):
+        '''
+        if from_list set to True, frame_num_list is necessary and should receive a set of the frame numbers to be extracted.<p> 
+        if from_list set to False, frame_quant is necessary and should receive the number of frames to be extracted.<p> 
+        '''
+        extractor = FrameExtractor(self.vidpath)
+        if from_list:
+            fgp = extractor.FrameGroup(extractor, frame_num_list)
+        else:
+            rfgp = extractor.get_random_frame_group(size=frame_quant)
+            fgp = extractor.FrameGroup(extractor, rfgp)
+            output_dir = os.path.join(self.instance_dir, 'frames')
+            frame_paths = fgp.save_group(group_name=self.frame_group_name, output_dir=output_dir)
+            structure = fgp.get_structure
+            structure['frame_paths'] = frame_paths
+            self.structure = structure
+        return structure #this is a dictionary with the image arrays, the frame numbers and the saved frame paths
+    
+    def get_descriptions(self, model_list:str):
+        structure = self.frame_structure
+        if not structure:
+            return print('before getting decriptin you must get instance_frames')
+        else:
+            structure['descriptions'] = []
+            for frame_path in self.frame_structure['frame_paths']:
+                description_list = []
+                for model in model_list: 
+                    descriptor = ImgDescriptor(model, frame_path=frame_path)
+                    description_list.append(descriptor.get_description())
+                structure['descriptions'].append(description_list)
+            structure['description_models'] = model_list
+            self.structure = structure
+        return structure #this is a dictionary with the image arrays, the frame numbers and the saved frame paths, descriptions and description models
+    
+    
+    
+
+
+
+
+        
