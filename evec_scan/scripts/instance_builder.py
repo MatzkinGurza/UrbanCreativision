@@ -8,6 +8,7 @@ import keras
 from keras import applications
 from evec_scan.tools import evectools as evt
 import pandas as pd
+from keras import applications
 ######################################################################################################
 df = pd.DataFrame()
 instance_dir = 'evec_scan/instances/test1'
@@ -17,6 +18,7 @@ group_size = 2
 vidpath = 'evec_scan/instances/test1/vid3.mp4'
 description_models = ['moondream'] #['moondream', 'llava-llama3']
 description_embedding_models = ['mxbai-embed-large'] #['mxbai-embed-large','nomic-embed-text', 'all-minilm']
+image_embedding_models = [applications.VGG16] #[applications.VGG16, applications.DenseNet121]
 #######################################################################################################
 video_instance = evt.FrameExtractor(vidpath=vidpath)
 frame_group = video_instance.get_random_frame_group(size=group_size)
@@ -46,10 +48,24 @@ for dir in description_columns:
             text_evec_scanner = evt.TextEvecScanner(model=text_evec_model, text=description)
             text_evec = text_evec_scanner.get_evec()
             description_evec_arr_per_model_per_desc_model[i]=text_evec
-        output_path = os.path.join(description_evec_output_dir,f'{text_evec_model}.npy')
-        np.save(file=output_path, arr=description_evec_arr_per_model_per_desc_model)
+            i += 1
+        output_path_desc_evec = os.path.join(description_evec_output_dir,f'{text_evec_model}.npy')
+        np.save(file=output_path_desc_evec, arr=description_evec_arr_per_model_per_desc_model)
 #######################################################################################################
+    for image_evec_models in image_embedding_models:
+        image_evec_arr_per_model_per_img_model = np.empty(group_size, dtype=object)
+        img_evec_scanner = evt.ImgEVecScanner()
+        img_evec_scanner.add_model(Keras_applications_model=image_evec_models)
+        for frame_path in df['frame_path']:
+            i = 0
+            res_dict = img_evec_scanner.get_models_evecs(frame_path=frame_path, lin_method='GAP')
+            for name, evec in zip(res_dict['model_name'],res_dict['embedding_vector']):
+                output_path_img_evec = os.path.join(instance_dir,f'{name}.npy')
+                image_evec_arr_per_model_per_img_model[i] = evec[0]
+                i += 1
+        np.save(file=output_path_img_evec, arr=image_evec_arr_per_model_per_img_model)
 
+        
 
 
 

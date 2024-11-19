@@ -149,21 +149,21 @@ from typing import Literal, Optional
 from keras.layers import Flatten, GlobalAveragePooling2D, GlobalMaxPooling2D
 
 class ImgEVecScanner:
-    def __init__(self, frame_path:str):
+    def __init__(self):
         '''
         Uses Keras.applications models that can take an image input with frame_path as its image input variable.<p> 
         Since Keras models are imported individually, a list of models is assumed by ImgEvecScanner and can be edited through the classes methods.<p> 
         '''
-        self.models = [applications.DenseNet121(weights='imagenet', include_top=False),
-                       applications.VGG16(weights='imagenet', include_top=False),
-                    ]
+        self.models =[]
+        # self.models = [applications.DenseNet121(weights='imagenet', include_top=False),
+        #                applications.VGG16(weights='imagenet', include_top=False),
+        #             ]
         self.preprocess_map = {
         "vgg16": applications.vgg16.preprocess_input,
         "vgg19": applications.vgg19.preprocess_input,
         "densenet121": applications.densenet.preprocess_input,
         "densenet169": applications.densenet.preprocess_input,
         }
-        self.frame_path = frame_path
         self.models_to_use_indexes = [x for x in range(0,len(self.models))]
 
     def add_model(self, Keras_applications_model):
@@ -190,8 +190,8 @@ class ImgEVecScanner:
     def get_model_list(self):
         return self.models
     
-    def get_models_evecs(self, lin_method:Literal['Flatten', 'GMP', 'GAP' ]):
-        img = keras.utils.load_img(self.frame_path, target_size=(224,224))
+    def get_models_evecs(self, frame_path:str, lin_method:Literal['Flatten', 'GMP', 'GAP' ]):
+        img = keras.utils.load_img(frame_path, target_size=(224,224))
         img_array = keras.utils.img_to_array(img)
         img_array = np.expand_dims (img_array, axis=0)
         evec_list = []
