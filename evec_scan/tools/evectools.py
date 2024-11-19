@@ -129,7 +129,7 @@ class ImgDescriptor:
         		'images': [self.image_path]
         }])
         self.response = res
-        self.description = res['content']
+        self.description = res['message']['content']
     
     def get_description(self):
         return self.description
@@ -242,12 +242,14 @@ class TextEvecScanner:
 
 
 class InstanceGenerator:
-    def __init__(self, instance_dir, vid_file, instance_name):
+    def __init__(self, instance_dir:str, vid_file:str, instance_name:str):
         '''
         to build an instance, you must create a directory containing the video file to be anayzed in the instance.<p> 
         It is recommended to have only one video file per instance directory for organization purposes.<p> 
         The instance_name attribute will be used as a part of resulting instance paths, considering that, do not use big names, neither blank spaces or punctuation.<p> 
         vid_path must be the name of the video file inside the insance_dir, including extension like ".mp4".<p> 
+        InstanceGenerator is a way to facilitate the process of creating an instance of model descriptions and its embedding vectors for a series of frames. 
+        Due to ImgEvecScanner already having methods tha facilitate applying many models to a single frame, its usage has not been implemented as a method inside this class.
         '''
         self.instance_path = instance_dir
         self.vidpath = os.path.join(instance_dir, vid_file)
@@ -256,7 +258,7 @@ class InstanceGenerator:
     
     def generate_instance_frames(self, 
                                  frame_quant:Optional[int], 
-                                 frame_num_list:Optional[set[int]], 
+                                 frame_num_list:Optional[set[int]]=None, 
                                  from_list:bool=False):
         '''
         if from_list set to True, frame_num_list is necessary and should receive a set of the frame numbers to be extracted.<p> 
@@ -268,9 +270,9 @@ class InstanceGenerator:
         else:
             rfgp = extractor.get_random_frame_group(size=frame_quant)
             fgp = extractor.FrameGroup(extractor, rfgp)
-            output_dir = os.path.join(self.instance_dir, 'frames')
+            output_dir = os.path.join(self.instance_path, 'frames')
             frame_paths = fgp.save_group(group_name=self.frame_group_name, output_dir=output_dir)
-            structure = fgp.get_structure
+            structure = fgp.get_structure()
             structure['frame_paths'] = frame_paths
             self.structure = structure
         return structure #this is a dictionary with the image arrays, the frame numbers and the saved frame paths
@@ -310,10 +312,5 @@ class InstanceGenerator:
             self.structure = structure
         return structure #this is a dictionary with the image arrays, the frame numbers and the saved frame paths, descriptions and description models
     
-
-    
-
-
-
-
-        
+    def get_structure(self):
+        return self.structure

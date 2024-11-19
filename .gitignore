@@ -7,3 +7,4 @@ copy_folder/
 *.pt
 __pycache__/
 frame_group_instances/
+*.mp4
