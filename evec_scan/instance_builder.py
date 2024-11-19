@@ -1,12 +1,7 @@
-import ffmpeg
 import numpy as np
-import imageio
 import os
-import random
-import ollama
-import keras
 from keras import applications
-from evec_scan.tools import evectools as evt
+from tools import evectools as evt
 import pandas as pd
 from keras import applications
 ######################################################################################################
@@ -54,6 +49,8 @@ for dir in description_columns:
         output_path_desc_evec = os.path.join(description_evec_output_dir,f'{text_evec_model}.npy')
         np.save(file=output_path_desc_evec, arr=description_evec_arr_per_model_per_desc_model)
 #######################################################################################################
+    img_evecs_output_dir = os.path.join(instance_dir, 'img_evecs')
+    os.makedirs(img_evecs_output_dir)
     for image_evec_models in image_embedding_models:
         image_evec_arr_per_model_per_img_model = np.empty(group_size, dtype=object)
         img_evec_scanner = evt.ImgEVecScanner()
@@ -62,7 +59,7 @@ for dir in description_columns:
             i = 0
             res_dict = img_evec_scanner.get_models_evecs(frame_path=frame_path, lin_method='GAP')
             for name, evec in zip(res_dict['model_name'],res_dict['embedding_vector']):
-                output_path_img_evec = os.path.join(instance_dir,f'{name}.npy')
+                output_path_img_evec = os.path.join(img_evecs_output_dir,f'{name}.npy')
                 image_evec_arr_per_model_per_img_model[i] = evec[0]
                 i += 1
         np.save(file=output_path_img_evec, arr=image_evec_arr_per_model_per_img_model)
