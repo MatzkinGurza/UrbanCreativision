@@ -8,3 +8,4 @@ copy_folder/
 __pycache__/
 frame_group_instances/
 *.mp4
+*.jpg

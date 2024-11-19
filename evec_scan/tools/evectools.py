@@ -232,7 +232,7 @@ class TextEvecScanner:
             prompt = self.text,)
         
         self.response = res
-        self.evec = res['embedding']
+        self.evec = np.array(res['embedding'])
     
     def get_response(self):
         return self.response
