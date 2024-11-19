@@ -37,6 +37,8 @@ for desc_model in description_models:
         descriptions_per_model.append(description)
     df[f'{desc_model}_desc'] = descriptions_per_model
     description_columns.append(f'{desc_model}_desc')
+df_output_path = os.path.join(instance_dir, 'instance_data.csv')
+df.to_csv(df_output_path, index=True)
 #######################################################################################################
 for dir in description_columns:
     description_evec_output_dir = os.path.join(instance_dir, 'desc_evecs', dir)
