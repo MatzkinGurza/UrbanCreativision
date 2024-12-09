@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 import os
 import random
 import ollama
+import torch
+import clip
+from PIL import Image
 
 class FrameExtractor:
     def __init__(self, vidpath:str):
@@ -152,7 +155,8 @@ class ImgEVecScanner:
     def __init__(self):
         '''
         Uses Keras.applications models that can take an image input with frame_path as its image input variable.<p> 
-        Since Keras models are imported individually, a list of models is assumed by ImgEvecScanner and can be edited through the classes methods.<p> 
+        Since Keras models are imported individually, a list of models is assumed by ImgEvecScanner and can be edited through the classes methods.<p>
+        Obs) As a new addition, a method to extract the embedding through OpenAIs clip models is available 
         '''
         self.models =[]
         # self.models = [applications.DenseNet121(weights='imagenet', include_top=False),
@@ -217,17 +221,36 @@ class ImgEVecScanner:
         return {'model_index':self.models_to_use_indexes, 'model_name':names, 
                 'embedding_vector': evec_list, 'vector_shape':vec_shapes, 'vector_dtype':vec_dtypes}
 
+    def get_clip_evec(self, model, frame_path):
+        image = Image.open(frame_path).convert("RGB")
+        image = image.resize((224, 224))
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model, preprocess = clip.load(model, device=device)
+        processed_image = preprocess(image).unsqueeze(0).to(device)
+        with torch.no_grad():
+            image_embedding = model.encode_image(processed_image)
+        return {"embedding_vector":[image_embedding.numpy()],"model_name":[f"clip_{model.replace("/","_")}"]}
 
 
 class TextEvecScanner:
-    def __init__(self, model:str, text:str):
+    def __init__(self, model:str, text:str, model_origin:str):
         '''
         Uses Ollama.embeddings models with text as its prompt input variable
+        or uses the clip from openai if flag is set to clip
         '''
         self.model = model
         self.text = text
 
-        res = ollama.embeddings(
+        if model_origin.lower() =='clip':
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            model, preprocess = clip.load(model, device=device)
+            text_tokens = clip.tokenize(text).to(device)
+            with torch.no_grad():
+                text_embedding = model.encode_text(text_tokens)
+            res = text_embedding
+
+        elif model_origin.lower() == 'ollama':
+            res = ollama.embeddings(
             model=self.model,
             prompt = self.text,)
         
@@ -239,6 +262,10 @@ class TextEvecScanner:
     
     def get_evec(self):
         return self.evec
+    
+    def get_clip_available_models():
+        return clip.available_models()
+    
 
 
 class InstanceGenerator:

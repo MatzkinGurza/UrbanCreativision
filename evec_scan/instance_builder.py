@@ -11,9 +11,9 @@ vid_file = 'vid3.mp4'
 instance_id = 'test1'
 group_size = 2
 vidpath = 'evec_scan/instances/test1/vid3.mp4'
-description_models = ['moondream'] #['moondream', 'llava-llama3']
-description_embedding_models = ['mxbai-embed-large'] #['mxbai-embed-large','nomic-embed-text', 'all-minilm']
-image_embedding_models = [applications.VGG16] #[applications.VGG16, applications.DenseNet121]
+description_models = ['moondream'] #'moondream', 'llava-llama3'
+description_embedding_models = {"model":['mxbai-embed-large', "ViT-B/32"], "model_origin":['ollama', "clip"]} #'mxbai-embed-large','nomic-embed-text', 'all-minilm' from ollama
+image_embedding_models = {'model':[applications.VGG16, "ViT-B/32"], 'model_origin':['keras', 'clip']} #applications.VGG16, applications.DenseNet121
 #######################################################################################################
 video_instance = evt.FrameExtractor(vidpath=vidpath)
 frame_group = video_instance.get_random_frame_group(size=group_size)
@@ -38,11 +38,11 @@ df.to_csv(df_output_path, index=True)
 for dir in description_columns:
     description_evec_output_dir = os.path.join(instance_dir, 'desc_evecs', dir)
     os.makedirs(description_evec_output_dir)
-    for text_evec_model in description_embedding_models:
+    for text_evec_model, model_origin in zip(description_embedding_models['model'],description_embedding_models['model_origin']):
         description_evec_arr_per_model_per_desc_model = np.empty(group_size, dtype=object)
         i = 0
         for description in df[dir]:
-            text_evec_scanner = evt.TextEvecScanner(model=text_evec_model, text=description)
+            text_evec_scanner = evt.TextEvecScanner(model=text_evec_model, text=description, model_origin=model_origin)
             text_evec = text_evec_scanner.get_evec()
             description_evec_arr_per_model_per_desc_model[i]=text_evec
             i += 1
@@ -51,13 +51,17 @@ for dir in description_columns:
 #######################################################################################################
     img_evecs_output_dir = os.path.join(instance_dir, 'img_evecs')
     os.makedirs(img_evecs_output_dir)
-    for image_evec_models in image_embedding_models:
+    for image_evec_model, model_origin in zip(image_embedding_models['model'],image_embedding_models['model_origin']):
         image_evec_arr_per_model_per_img_model = np.empty(group_size, dtype=object)
         img_evec_scanner = evt.ImgEVecScanner()
-        img_evec_scanner.add_model(Keras_applications_model=image_evec_models)
+        if model_origin.lower() == "keras":
+            img_evec_scanner.add_model(Keras_applications_model=image_evec_model)
         for frame_path in df['frame_path']:
             i = 0
-            res_dict = img_evec_scanner.get_models_evecs(frame_path=frame_path, lin_method='GAP')
+            if model_origin.lower() == "keras":
+                res_dict = img_evec_scanner.get_models_evecs(frame_path=frame_path, lin_method='GAP')
+            elif model_origin.lower() == "clip":
+                res_dict = img_evec_scanner.get_clip_evec(model=image_evec_model, frame_path=frame_path)
             for name, evec in zip(res_dict['model_name'],res_dict['embedding_vector']):
                 output_path_img_evec = os.path.join(img_evecs_output_dir,f'{name}.npy')
                 image_evec_arr_per_model_per_img_model[i] = evec[0]
