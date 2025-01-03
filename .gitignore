@@ -9,4 +9,4 @@ __pycache__/
 frame_group_instances/
 *.mp4
 *.jpg
-*.mp3
+__pycache__
