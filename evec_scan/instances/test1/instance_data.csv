@@ -1,7 +1,59 @@
-,frame_path,moondream_desc
-0,evec_scan/instances/test1\frames\test1_848.jpg,"
-The image depicts a nighttime city street scene. The street is illuminated by the glow of streetlights and car headlights, with trees lining both sides providing a sense of depth to the urban landscape. A sidewalk runs parallel to the street on the right side, where several people can be seen walking or standing. The perspective suggests that the viewer is looking down the length of the street towards the sidewalk, creating a sense of continuity between the two areas."
-1,evec_scan/instances/test1\frames\test1_17546.jpg,"
-The image captures a nighttime street scene with a white car driving down the road, its headlights illuminating the surroundings. The street is lined with trees and buildings on both sides, creating an urban atmosphere. A crosswalk runs through the center of the street, marked by a yellow line that guides pedestrians safely across the road.
+,frame_path,moondream_desc,llava-llama3_desc
+0,C:/Documents/Projects_IC/creativision_nyu/UrbanCreativision/evec_scan/instances/test1\frames\test2_7181.jpg,"
+The image shows a bus stop on a street with a blue roof. The bus stop is situated in front of a building, and there are trees nearby. A person can be seen walking towards the bus stop.","The image captures a serene scene in an urban setting. Dominating the frame is a bus stop, painted white with a contrasting blue roof. The stop is situated on a street corner, where two trees stand guard, their leaves forming a natural canopy over the area.
 
-In addition to the car, there are several other vehicles visible in the scene, including a bus further down the street and another car parked nearby. Pedestrians can be seen walking on the sidewalk or crossing the street at designated areas. The overall ambiance of the image is one of activity and movement, typical of an urban environment during nighttime hours."
+A single individual is present at the stop, seated comfortably on one of the benches. The person's attention seems to be drawn to something off-frame, adding a touch of intrigue to the scene.
+
+The bus stop is strategically located near a crosswalk, indicating its role as a transit hub in this part of the city. The crosswalk itself is equipped with a traffic light, ensuring safety and order at this intersection.
+
+In the background, beyond the immediate vicinity of the bus stop, you can see other buildings. These structures, though not as prominently featured, contribute to the overall urban landscape depicted in the image.
+
+Overall, the image paints a picture of an everyday moment in city life, where public transportation like buses plays a crucial role."
+1,C:/Documents/Projects_IC/creativision_nyu/UrbanCreativision/evec_scan/instances/test1\frames\test2_16227.jpg,"
+The image shows a bus stop on the side of a street. The bus stop is painted in white and has a blue roof, providing shelter for passengers waiting to board or disembark from the bus. There are two buses parked at the stop - one larger bus with a blue roof and another smaller bus without a roof. A few people can be seen near the bus stop, possibly waiting to board the bus or just passing by. The street is lined with trees on both sides, adding greenery to the urban setting.","The image captures a tranquil scene set against the backdrop of an overcast sky. Dominating the foreground is a large, imposing building painted in hues of blue and gray. The architecture suggests it might be a school or library, hinting at the quiet hum of learning within its walls.
+
+In front of this building, a bus stop made of wood stands alone on the sidewalk. It's an unassuming structure, yet it carries a sense of anticipation, as if waiting for passengers to arrive and embark on their journey.
+
+The street in front of the bus stop is marked with white lines, providing a clear path for vehicles. A single tree stands guard next to the road, its leaves perhaps whispering stories of the past to those who pass by.
+
+The entire scene is bathed in soft light, creating an atmosphere that's both serene and inviting. It's a snapshot of everyday life, captured in one single frame."
+2,C:/Documents/Projects_IC/creativision_nyu/UrbanCreativision/evec_scan/instances/test1\frames\test2_17755.jpg,"
+The image shows a bus stop on the side of a street. The bus stop is painted in blue and white colors, with a sign that reads ""bus stop"" above it. A few people are present at the bus stop, some standing near the building while others are walking along the sidewalk. In front of the bus stop, there's a tree providing shade for those waiting to board or alight from the bus. The sky is overcast, casting a soft light on the scene and creating an atmosphere of calmness.","The image captures a tranquil scene on the corner of a street. Dominating the foreground is a bus stop, its blue roof and white walls standing out against the urban backdrop. The words ""Bus Stop"" are prominently displayed on the roof, clearly marking its purpose.
+
+Adjacent to the bus stop, a park stretches out, its lush greenery providing a stark contrast to the concrete structures around it. A solitary bench invites passersby to sit and enjoy the view, while a few trees stand guard in the background, their leaves rustling gently in the breeze.
+
+Across the street, a row of buildings lines the sidewalk, their blue roofs mirroring the color of the bus stop. The buildings are mostly obscured by the park, but their presence is still noticeable due to their size and uniformity.
+
+The sky overhead is overcast, casting a soft light over the scene. Despite the lack of sunshine, there's a sense of calmness that pervades the image, as if time itself has slowed down in this particular corner of the world. The relative positions of the objects - the bus stop on one side, the park in the middle, and the buildings on the other - create a harmonious balance that is pleasing to the eye.
+
+Overall, the image presents a snapshot of everyday life, capturing the quiet beauty found in ordinary places."
+3,C:/Documents/Projects_IC/creativision_nyu/UrbanCreativision/evec_scan/instances/test1\frames\test2_18268.jpg,"
+The image shows a bus stop with two buses parked side by side. The first bus is blue and white, while the second bus is red and white. Both buses have their doors open, ready to pick up passengers. A few people are visible near the buses, possibly waiting for their ride or just passing by. In the background, there's a building with a blue roof that appears to be a school or an educational institution.
+
+The scene also includes trees and bushes in front of the bus stop, adding some greenery to the urban setting. The sky is overcast, casting a soft light on the surroundings.","The image captures a scene of urban tranquility. Dominating the foreground is an empty bench, its surface a blend of black and brown hues. It's positioned adjacent to a red pole, standing alone on a strip of grass that separates it from the street.
+
+Beyond the bench, the world unfolds in layers. The first layer is a blue building with a white roof, its color contrasting against the clear sky above. Adjacent to this building is another structure, painted in a lighter shade of blue but topped with a gray roof.
+
+The perspective of the photo suggests it was taken from the street, adding depth to the scene. Despite the absence of people or moving objects, there's a sense of life in the image - perhaps in the quiet stillness of the bench waiting for its next occupant, or in the silent communication between the buildings across the strip of grass.
+
+There's no text visible in the image, and the relative positions of the objects remain constant, with the bench in front, the red pole beside it, the blue building behind it, and another blue building with a gray roof beyond that. The image is a snapshot of a moment, frozen in time yet brimming with potential for movement and life."
+4,C:/Documents/Projects_IC/creativision_nyu/UrbanCreativision/evec_scan/instances/test1\frames\test2_21771.jpg,"
+The image shows a city bus parked on the side of a street. The bus is painted in black and orange colors, with the number 824 displayed on its front. It has two doors and windows, indicating it's designed for passenger use. The bus is positioned next to a tree, providing some shade from the sun. In the background, there are other vehicles parked along the street, including cars and trucks.","The image showcases a scene of urban transportation. Dominating the frame is a modern city bus, painted in hues of gray and orange, with black lettering adorning its side. The bus number ""4231"" is prominently displayed on the front, along with the route name ""Wentworth"". The destination sign reads ""Staten"", indicating its current or intended path.
+
+The bus is parked by the side of a road, which is marked with a single white line running down its center. This could suggest a no-parking zone or perhaps it's an indicator for the direction of traffic flow.
+
+In the backdrop, there are trees standing tall, their green foliage contrasting with the urban setting. They appear to be some distance away from the bus, adding a touch of nature to this otherwise man-made landscape.
+
+Overall, the image captures a typical moment in city life, where public transportation like buses play a crucial role in connecting different parts of the city. The bus, ready to embark on its journey to ""Staten"", stands as a symbol of urban mobility and convenience."
+5,C:/Documents/Projects_IC/creativision_nyu/UrbanCreativision/evec_scan/instances/test1\frames\test2_23418.jpg,"
+The image shows a bus stop on the side of a street. The bus stop is painted in blue and white colors, with two benches facing each other. One bench has a sign that says ""bus stop"" while the other does not. A tree stands next to the bus stop, providing shade for those waiting at the stop. In the background, there are buildings visible behind the trees.","The image captures a scene from an urban setting. Dominating the foreground is a bus stop, its structure painted in a vibrant blue that contrasts with the white roof. A single individual is seated on one of the benches at the stop, perhaps waiting for their ride. 
+
+Behind the bus stop, a building stands tall, its facade gray and punctuated by numerous windows. The building's height is accentuated by the perspective from which the photo appears to have been taken.
+
+The street in front of the bus stop is lined with trees, their leaves forming a canopy that partially obscures the view of the building. A solitary lamppost stands on the sidewalk, adding to the urban aesthetic of the scene.
+
+The sky overhead is overcast, casting a soft light over the entire scene and muting the colors slightly. Despite this, the image retains a certain vibrancy, from the bright blue of the bus stop to the subtle shades of gray in the building and the street. 
+
+There's no visible text in the image, and the relative positions of the objects suggest a typical cityscape layout with the bus stop closer to the viewer, followed by the building, and then the line of trees at the end of the street. The lamppost is located near the curb, parallel to the bus stop. 
+
+Overall, the image presents a common urban scene, but one that's filled with details that make it uniquely interesting."

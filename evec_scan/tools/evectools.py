@@ -14,12 +14,15 @@ class FrameExtractor:
     def __init__(self, vidpath:str):
 
         self.video_path = vidpath 
+        print('file exists: ', os.path.isfile(vidpath))
 
         try: 
             probe = ffmpeg.probe(self.video_path)
+            print(probe)
+
         except Exception as e:
             print("Error:", e)
-        # print(probe)
+        
 
         fps_info = probe['streams'][0]['r_frame_rate']
         fps = float(eval(fps_info)) 
