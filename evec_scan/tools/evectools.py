@@ -228,11 +228,11 @@ class ImgEVecScanner:
         image = Image.open(frame_path).convert("RGB")
         image = image.resize((224, 224))
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        model, preprocess = clip.load(model, device=device)
+        clipmodel, preprocess = clip.load(model, device=device)
         processed_image = preprocess(image).unsqueeze(0).to(device)
         with torch.no_grad():
-            image_embedding = model.encode_image(processed_image)
-        return {"embedding_vector":[image_embedding.numpy()],"model_name":[f"clip_{model.replace("/","_")}"]}
+            image_embedding = clipmodel.encode_image(processed_image)
+        return {"embedding_vector":[image_embedding.cpu().numpy()],"model_name":[f"clip_{str(model).replace("/","")}"]}
 
 
 class TextEvecScanner:

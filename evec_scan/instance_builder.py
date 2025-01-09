@@ -8,13 +8,13 @@ from keras import applications
 
 ############################This section contains all information necessary previous to the execution of the script#################################################################
 df = pd.DataFrame()
-instance_dir = 'UrbanCreativision\evec_scan\instances\test1'
-vid_file = 'video1.mp4'
-instance_id = 'test1'
-group_size = 3
-vidpath = 'UrbanCreativision\evec_scan\instances\test1\video1.mp4'
+instance_dir = 'C:/Documents/Projects_IC/creativision_nyu/UrbanCreativision/evec_scan/instances/test2'
+vid_file = 'video2.mp4'
+instance_id = 'test2'
+group_size = 6
+vidpath = 'C:/Documents/Projects_IC/creativision_nyu/UrbanCreativision/evec_scan/instances/test2/video2.mp4' 
 description_models = ['moondream', 'llava-llama3'] #'moondream', 'llava-llama3'
-description_embedding_models = {"model":['mxbai-embed-large', "ViT-B/32"], "model_origin":['ollama', "clip"]} #'mxbai-embed-large','nomic-embed-text', 'all-minilm' from ollama
+description_embedding_models = {"model":['mxbai-embed-large'], "model_origin":['ollama']} #{"model":['mxbai-embed-large', "ViT-B/32"], "model_origin":['ollama', "clip"]} #'mxbai-embed-large','nomic-embed-text', 'all-minilm' from ollama
 image_embedding_models = {'model':[applications.VGG16, "ViT-B/32"], 'model_origin':['keras', 'clip']} #applications.VGG16, applications.DenseNet121
 
 
@@ -29,9 +29,9 @@ df.index = list(range(len(frame_path_list)))
 
 
 #############################This section gets the descriptions for every frame in the previous group model by model###########################################################################
+description_columns = []
 for desc_model in description_models: 
     descriptions_per_model = []
-    description_columns = []
     for frame_path in df['frame_path']:
         descriptor = evt.ImgDescriptor(model=desc_model,frame_path=frame_path)
         description = descriptor.get_description()
@@ -79,40 +79,4 @@ for image_evec_model, model_origin in zip(image_embedding_models['model'],image_
     np.save(file=output_path_img_evec, arr=image_evec_arr_per_model_per_img_model)
 
     
-
-
-
-
-
-# #### DESCOBRIR COMO SALVAR OS EMBEDDINGS E ORGANIZAR O JSON RESULTANTE
-
-# InstanceGen = evt.InstanceGenerator(instance_dir='evec_scan/instances/test1', vid_file='vid3.mp4', instance_name='test_instance3')
-# print('Instance created\nStructure: ', InstanceGen.get_structure())
-# InstanceGen.generate_instance_frames(frame_quant=3)
-# print('Instance frames generated\nStructure: ', InstanceGen.get_structure())
-# InstanceGen.get_descriptions(ollama_model_list=['moondream', 'llava-llama3'])
-# print('Instance frames described\nStructure: ', InstanceGen.get_structure())
-# InstanceGen.get_description_embeddings(ollama_model_list=['mxbai-embed-large','nomic-embed-text', 'all-minilm'])
-# print('Instance descriptions embedded\nStructure: ', InstanceGen.get_structure())
-# structure = InstanceGen.get_structure()
-# structure['image_embedding_models'] = []
-# structure['image_embedding_vectors'] = []
-# structure['image_embedding_vectors_shape'] = []
-
-
-# for frame_path in structure['frame_paths']:
-#     frame_evec = evt.ImgEVecScanner(frame_path=frame_path)
-#     # frame_evec.add_model(Keras_applications_model=applications.VGG19)
-#     # frame_evec.change_preprocess_map(...)
-#     # frame_evec.change_models_to_use(...)
-#     # frame_evec.get_model_list(...)
-#     # frame_evec.get_preprocess_map(...)
-#     ImgEvecDict = frame_evec.get_models_evecs(lin_method='GAP')
-#     print('image embedding data', ImgEvecDict)
-#     structure['image_embedding_models'].append(ImgEvecDict['model_name'])
-#     structure['image_embedding_vectors'].append(ImgEvecDict['embedding_vector'])
-#     structure['image_embedding_vectors_shape'].append(ImgEvecDict['vector_shape'])
-
-# print(structure)
-
 
