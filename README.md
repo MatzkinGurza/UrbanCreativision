@@ -15,5 +15,6 @@
 Anotações
 - https://youtu.be/ag3DLKsl2vk?feature=shared
 
-instância tem a seguinte estrutura:
+instância tem a seguinte estrutura:<br>
+
   ![image](https://github.com/user-attachments/assets/a6c5f40f-8530-40ff-a524-3cdaf04f9a3c)
