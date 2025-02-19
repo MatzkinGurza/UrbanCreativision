@@ -7,6 +7,10 @@ from typing import Literal, Optional
 import ffmpeg
 import imageio
 import pandas as pd
+import ollama
+import torch
+import clip
+import numpy as np
 
         
 
@@ -98,6 +102,7 @@ class video:
         print('file exists: ', os.path.isfile(instance_video_path))
         head, tail = os.path.split(instance_video_path)
         self.instance_path = head
+        self.vidpath = instance_video_path
         self.video_file_name = tail
         try: 
             probe = ffmpeg.probe(self.video_path)
@@ -125,6 +130,8 @@ class video:
     def dir(self):
         return self.instance_path
     def path(self):
+        return self.vidpath
+    def video(self):
         return self.video_file_name
     def fps(self):
         return self.fps_val
@@ -136,10 +143,66 @@ class video:
          return self.origin_id
     def reader(self):
         return self.video_reader
+    
+class descriptor:
+    def __init__(self, model_name: str):
+        self.model_name = model_name
+        self.session = ollama.ChatSession(model=model_name)
+
+    def describe(self, frame_path):
+        with open(frame_path, "rb") as frame_file:
+            image_bytes = frame_file.read()
+
+        response = self.session.send_message({
+            "role": "user",
+            "content": "Describe this image in detail.",
+            "images": [image_bytes]  # Send the image as input
+        })
+        return response["message"]["content"]
+
+class text_embedder:
+    def __init__(self, model, origin):
+        """
+        Keeps the model loaded and processes multiple texts efficiently.
+        Supports either Ollama embeddings or OpenAI CLIP embeddings.
+        """
+        self.model_origin = origin.lower()
+        self.model_name = model
+        
+        if self.model_origin == 'clip':
+            # Load CLIP model only once
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.model, self.preprocess = clip.load(model, device=self.device)
+        
+        elif self.model_origin == 'ollama':
+            # Keep Ollama model loaded in memory
+            self.session = ollama.EmbeddingSession(model=model)
+        
+    def compute_embedding(self, text: str):
+        """
+        Compute the embedding for a given text.
+        Uses the preloaded model to avoid redundant initializations.
+        """
+        if self.model_origin == 'clip':
+            text_tokens = clip.tokenize(text).to(self.device)
+            with torch.no_grad():
+                text_embedding = self.model.encode_text(text_tokens)
+            return text_embedding.cpu().numpy()
+        
+        elif self.model_origin == 'ollama':
+            res = self.session.get_embedding(prompt=text)  # Uses preloaded Ollama session
+            return np.array(res['embedding'])
+        
 
 # MAIN
 
 if __name__ == "__main__":
+
+    # Global especifications
+    NUM_FRAMES = 5 # number of frames to be extracted at random per video
+    DESC_MODELS = ['moondream', 'llava-llama3']
+    DESC_EMBEDDERS = {"model":['mxbai-embed-large'], "model_origin":['ollama']}
+
     # Specify the root directory to start the search
     root_dir = input("Enter the root directory to search for videos: ").strip()
     if os.path.isdir(root_dir):
@@ -147,13 +210,42 @@ if __name__ == "__main__":
     else:
         print("The specified directory does not exist.")
     video_file_paths = instance_build(video_file_paths)
+
+    # this section runs the program for each instance found in the previous directory search
     for vidpath in video_file_paths:
         vid = video(vidpath)
-        frame_paths = get_random_frames(5, vid) #get_specified_frames can also be used changing this line of code
+        frame_paths = get_random_frames(NUM_FRAMES, vid) #get_specified_frames can also be used changing this line of code but would demand change in NUM_FRAMES to match
         df = pd.DataFrame()
         df['frame_path'] = frame_paths
         df.index = list(range(len(frame_paths)))
+        
         # section destined to extracting all descriptions from the frame set obtained
+        for desc_model in DESC_MODELS: 
+            model = descriptor(desc_model)
+            descriptions_per_model = []
+            for frame_path in frame_paths:
+                description = model.describe(frame_path=frame_path)
+                descriptions_per_model.append(description)
+            df[f'{desc_model}'] = descriptions_per_model
+            os.makedirs(os.path.join(vid.dir, 'desc_evecs', f'{desc_model}')) # creates a directory for the embeddings for each descriptor
 
+        # saves the dataframe to te instance directory
+        df_output_path = os.path.join(vid.dir, 'instance_data.csv')
+        df.to_csv(df_output_path, index=True)     
 
+        # This section gets the embedding vector of each frames description, 
+        # desc_model by desc_model for all description embedding models
+        for model, origin in zip(DESC_EMBEDDERS['model'],DESC_EMBEDDERS['model_origin']):
+            embedder = text_embedder(model, origin)
+            for desc_model in DESC_MODELS:
+                evec_array = np.empty(NUM_FRAMES, dtype=object)
+                i = 0
+                for desc in df[desc_model]:
+                    evec = embedder.compute_embedding(desc)
+                    evec_array[i] = evec
+                    i += 1
+                output_desc_evec = os.path.join(vid.dir, 'desc_evecs', f'{desc_model}', f'{str(model).replace('/','')}.npy')
+                np.save(file=output_desc_evec, arr=evec_array)
+        
+        # This section gets the embedding vector for each frame model by model
 
