@@ -4,6 +4,7 @@ import os
 import glob
 import random
 from typing import Literal, Optional
+from keras import applications
 import ffmpeg
 import imageio
 import pandas as pd
@@ -11,7 +12,7 @@ import ollama
 import torch
 import clip
 import numpy as np
-
+from PIL import Image
         
 
 # FUNCTIONS
@@ -71,11 +72,13 @@ def get_random_frames(num: int, vid: 'video'):
     output_dir = os.path.join(vid.dir, 'frames')
     os.makedirs(output_dir, exist_ok=True)
     frame_paths = []
-    for f in frame_set:
+    frame_ram = np.empty(NUM_FRAMES, dtype=object)
+    for i, f in enumerate(frame_set):
         frame = read_frame(f, vid.reader)
         path = save_frame(frame, output_dir, f, vid.origin_id)
         frame_paths.append(path)
-    return frame_paths
+        frame_ram[i] = Image.fromarray(frame)
+    return frame_paths, frame_ram
 
 def get_specified_frames(frame_set: set[int], vid: 'video'):
     #vid = video(instance_video_path)
@@ -83,11 +86,13 @@ def get_specified_frames(frame_set: set[int], vid: 'video'):
         output_dir = os.path.join(video.dir, 'frames')
         os.makedirs(output_dir, exist_ok=True)
         frame_paths = []
-        for f in frame_set:
+        frame_ram = np.empty(NUM_FRAMES, dtype=object)
+        for i, f in enumerate(frame_set):
             frame = read_frame(f, vid.reader)
             path = save_frame(frame, output_dir, f, vid.origin_id)
             frame_paths.append(path)
-        return frame_paths        
+            frame_ram[i] = Image.fromarray(frame)
+        return frame_paths, frame_ram     
     else:
         raise IndexError(f"Cannot have int in set bigger than {vid.frame_count}, total frame number")
 
@@ -193,6 +198,15 @@ class text_embedder:
             res = self.session.get_embedding(prompt=text)  # Uses preloaded Ollama session
             return np.array(res['embedding'])
         
+class img_embedder:
+    def __init__(self, model, origin):
+        self.model_origin = origin.lower()
+        self.model_name = model
+    
+    def compute_embedding(self, img):
+        pass
+        
+        
 
 # MAIN
 
@@ -202,6 +216,7 @@ if __name__ == "__main__":
     NUM_FRAMES = 5 # number of frames to be extracted at random per video
     DESC_MODELS = ['moondream', 'llava-llama3']
     DESC_EMBEDDERS = {"model":['mxbai-embed-large'], "model_origin":['ollama']}
+    FRAME_EMBEDDERS = {'model':[applications.VGG16, "ViT-B/32"], 'model_origin':['keras', 'clip']}
 
     # Specify the root directory to start the search
     root_dir = input("Enter the root directory to search for videos: ").strip()
@@ -214,7 +229,7 @@ if __name__ == "__main__":
     # this section runs the program for each instance found in the previous directory search
     for vidpath in video_file_paths:
         vid = video(vidpath)
-        frame_paths = get_random_frames(NUM_FRAMES, vid) #get_specified_frames can also be used changing this line of code but would demand change in NUM_FRAMES to match
+        frame_paths, frame_ram = get_random_frames(NUM_FRAMES, vid) #get_specified_frames can also be used changing this line of code but would demand change in NUM_FRAMES to match
         df = pd.DataFrame()
         df['frame_path'] = frame_paths
         df.index = list(range(len(frame_paths)))
@@ -238,14 +253,27 @@ if __name__ == "__main__":
         for model, origin in zip(DESC_EMBEDDERS['model'],DESC_EMBEDDERS['model_origin']):
             embedder = text_embedder(model, origin)
             for desc_model in DESC_MODELS:
-                evec_array = np.empty(NUM_FRAMES, dtype=object)
+                desc_evec_array = np.empty(NUM_FRAMES, dtype=object)
                 i = 0
                 for desc in df[desc_model]:
-                    evec = embedder.compute_embedding(desc)
-                    evec_array[i] = evec
+                    desc_evec = embedder.compute_embedding(desc)
+                    desc_evec_array[i] = desc_evec
                     i += 1
                 output_desc_evec = os.path.join(vid.dir, 'desc_evecs', f'{desc_model}', f'{str(model).replace('/','')}.npy')
-                np.save(file=output_desc_evec, arr=evec_array)
+                np.save(file=output_desc_evec, arr=desc_evec_array)
         
         # This section gets the embedding vector for each frame model by model
+
+        os.makedirs(os.path.join(vid.dir, 'img_evecs'))
+        for model, origin in zip(FRAME_EMBEDDERS['model'],FRAME_EMBEDDERS['model_origin']):
+            embedder = img_embedder(model, origin) ######
+            img_evec_array = np.empty(NUM_FRAMES, dtype=object)
+            i = 0
+            for frame in frame_ram:
+                img_evec = img_embedder.compute_embedding(frame)
+                img_evec_array[i] = img_evec
+                i += 1
+            output_img_evec = os.path.join(vid.dir, 'img_evecs', f'{str(model).replace('/','')}.npy')
+            np.save(file=output_img_evec, arr=img_evec_array)
+        
 
