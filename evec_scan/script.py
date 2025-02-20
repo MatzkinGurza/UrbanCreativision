@@ -3,9 +3,10 @@
 import os
 import glob
 import random
-from typing import Literal, Optional
-from keras import applications
 import ffmpeg
+from typing import Literal, Optional
+from keras import applications, utils
+from keras.layers import Flatten, GlobalAveragePooling2D, GlobalMaxPooling2D
 import imageio
 import pandas as pd
 import ollama
@@ -13,6 +14,7 @@ import torch
 import clip
 import numpy as np
 from PIL import Image
+
         
 
 # FUNCTIONS
@@ -197,17 +199,62 @@ class text_embedder:
         elif self.model_origin == 'ollama':
             res = self.session.get_embedding(prompt=text)  # Uses preloaded Ollama session
             return np.array(res['embedding'])
-        
-class img_embedder:
-    def __init__(self, model, origin):
-        self.model_origin = origin.lower()
-        self.model_name = model
-    
-    def compute_embedding(self, img):
-        pass
-        
-        
 
+class img_embedder:
+    def __init__(self, model: str, origin: str):
+        self.model_origin = origin.lower()
+        self.model_name = model.lower()
+        if self.model_origin == 'keras':
+            # Load the corresponding Keras model and remove the top classification layers
+            keras_models = {
+                "vgg16": applications.VGG16(weights='imagenet', include_top=False),
+                "vgg19": applications.VGG19(weights='imagenet', include_top=False),
+                "densenet121": applications.DenseNet121(weights='imagenet', include_top=False),
+                "densenet169": applications.DenseNet169(weights='imagenet', include_top=False),}
+            if self.model_name not in keras_models:
+                raise ValueError(f"Unsupported Keras model: {model}")
+            self.model = keras_models[self.model_name]
+            # Define preprocessing function based on the model
+            self.preprocess_fn = {
+                "vgg16": applications.vgg16.preprocess_input,
+                "vgg19": applications.vgg19.preprocess_input,
+                "densenet121": applications.densenet.preprocess_input,
+                "densenet169": applications.densenet.preprocess_input,
+            }[self.model_name]
+        elif self.model_origin == 'clip':
+            # Load CLIP model and preprocessing function
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.device = device
+            self.model, self.preprocess_fn = clip.load(model, device=device)
+        else:
+            raise ValueError(f"Unsupported model origin: {origin}")
+
+    def compute_embedding(self, img, lin_method:Literal['Flatten', 'GMP', 'GAP' ]):
+        if self.model_origin == 'keras':
+            img_array = utils.img_to_array(img)  # Convert image to array and preprocess
+            img_array = np.expand_dims(img_array, axis=0)
+            preprocessed_img = self.preprocess_fn(img_array)
+            feature_maps = self.model.predict(preprocessed_img) # Extract features with the model
+            # Apply chosen pooling method
+            lin_layer = {
+                'GMP': GlobalMaxPooling2D(),
+                'GAP': GlobalAveragePooling2D(),
+                'Flatten': Flatten(),
+            }.get(lin_method)
+            if lin_layer is None:
+                raise ValueError(f"Invalid linearization method: {lin_method}")
+            tensor = lin_layer(feature_maps)
+            return tensor.numpy()
+        elif self.model_origin == 'clip':
+            # Preprocess image and compute CLIP embedding
+            img_clip = self.preprocess_fn(img).unsqueeze(0).to(self.device)
+            with torch.no_grad():
+                image_features = self.model.encode_image(img_clip)
+            return image_features.cpu().numpy()  # Convert to NumPy array
+        else:
+            raise ValueError(f"Unknown model origin: {self.model_origin}")
+
+        
 # MAIN
 
 if __name__ == "__main__":
@@ -216,7 +263,7 @@ if __name__ == "__main__":
     NUM_FRAMES = 5 # number of frames to be extracted at random per video
     DESC_MODELS = ['moondream', 'llava-llama3']
     DESC_EMBEDDERS = {"model":['mxbai-embed-large'], "model_origin":['ollama']}
-    FRAME_EMBEDDERS = {'model':[applications.VGG16, "ViT-B/32"], 'model_origin':['keras', 'clip']}
+    FRAME_EMBEDDERS = {'model':["VGG16", "ViT-B/32"], 'model_origin':['keras', 'clip']}
 
     # Specify the root directory to start the search
     root_dir = input("Enter the root directory to search for videos: ").strip()
@@ -263,14 +310,13 @@ if __name__ == "__main__":
                 np.save(file=output_desc_evec, arr=desc_evec_array)
         
         # This section gets the embedding vector for each frame model by model
-
         os.makedirs(os.path.join(vid.dir, 'img_evecs'))
         for model, origin in zip(FRAME_EMBEDDERS['model'],FRAME_EMBEDDERS['model_origin']):
-            embedder = img_embedder(model, origin) ######
+            embedder = img_embedder(model, origin)
             img_evec_array = np.empty(NUM_FRAMES, dtype=object)
             i = 0
             for frame in frame_ram:
-                img_evec = img_embedder.compute_embedding(frame)
+                img_evec = img_embedder.compute_embedding(frame, 'GAP')
                 img_evec_array[i] = img_evec
                 i += 1
             output_img_evec = os.path.join(vid.dir, 'img_evecs', f'{str(model).replace('/','')}.npy')
