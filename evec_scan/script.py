@@ -19,7 +19,7 @@ from PIL import Image
 
 # FUNCTIONS
 
-def find_files(root_directory: str, extensions: tuple[str]=('*.mp4')) -> list:
+def find_files(root_directory: str, extensions: tuple[str, ...]=('*.mp4',)) -> list:
     '''
     extensions might be: '*.avi', '*.mov', '*.mkv', '*.flv', '*.wmv', '*.webm'
     '''
@@ -27,6 +27,8 @@ def find_files(root_directory: str, extensions: tuple[str]=('*.mp4')) -> list:
     video_files = []
     for ext in extensions:
         video_files.extend(glob.glob(os.path.join(root_directory, '**', ext), recursive=True))
+    video_files = [f for f in video_files if os.path.isfile(f)]
+    print(f"The following '{len(video_files)}' videos where found: '{video_files}'")
     return video_files
 
 def instance_build(video_files: list[str], build_id: Optional[str] = '') -> list:
@@ -43,8 +45,14 @@ def instance_build(video_files: list[str], build_id: Optional[str] = '') -> list
         # Move the video into the instance folder
         video_name = os.path.basename(video_path)
         new_video_path = os.path.join(instance_folder, video_name)
-        video_instances.append(new_video_path)
-        os.rename(video_path, new_video_path)
+
+        # Ensure the path is valid before renaming
+        if os.path.isdir(instance_folder):
+            os.rename(video_path, new_video_path)
+            video_instances.append(new_video_path)
+            print(f"Moved '{video_path}' to '{new_video_path}'")
+        else:
+            print(f"Error: Instance folder '{instance_folder}' was not created properly.")
 
         print(f"Moved '{video_path}' to '{new_video_path}'")
         instance_counter += 1
@@ -68,35 +76,35 @@ def read_frame(frame, reader):
 
 def get_random_frames(num: int, vid: 'video'):
     #vid = video(instance_video_path)
-    if num > (vid.frame_count):
+    if num > (vid.frame_count()):
         raise ValueError("Cannot select more unique frames than available in range")
-    frame_set = sorted(random.sample(range(0, vid.frame_count - 1), num))
-    output_dir = os.path.join(vid.dir, 'frames')
+    frame_set = sorted(random.sample(range(0, vid.frame_count() - 1), num))
+    output_dir = os.path.join(vid.dir(), 'frames')
     os.makedirs(output_dir, exist_ok=True)
     frame_paths = []
     frame_ram = np.empty(NUM_FRAMES, dtype=object)
     for i, f in enumerate(frame_set):
-        frame = read_frame(f, vid.reader)
-        path = save_frame(frame, output_dir, f, vid.origin_id)
+        frame = read_frame(f, vid.reader())
+        path = save_frame(frame, output_dir, f, vid.id())
         frame_paths.append(path)
         frame_ram[i] = Image.fromarray(frame)
     return frame_paths, frame_ram
 
 def get_specified_frames(frame_set: set[int], vid: 'video'):
     #vid = video(instance_video_path)
-    if all(0 < f < vid.frame_count for f in frame_set):
+    if all(0 < f < vid.frame_count() for f in frame_set):
         output_dir = os.path.join(video.dir, 'frames')
         os.makedirs(output_dir, exist_ok=True)
         frame_paths = []
         frame_ram = np.empty(NUM_FRAMES, dtype=object)
         for i, f in enumerate(frame_set):
-            frame = read_frame(f, vid.reader)
-            path = save_frame(frame, output_dir, f, vid.origin_id)
+            frame = read_frame(f, vid.reader())
+            path = save_frame(frame, output_dir, f, vid.id())
             frame_paths.append(path)
             frame_ram[i] = Image.fromarray(frame)
         return frame_paths, frame_ram     
     else:
-        raise IndexError(f"Cannot have int in set bigger than {vid.frame_count}, total frame number")
+        raise IndexError(f"Cannot have int in set bigger than {vid.frame_count()}, total frame number")
 
     
 # CLASSES
@@ -105,14 +113,14 @@ class video:
     '''
     instance_video_path must be the path of a video inside an instance folder already created
     '''
-    def __init__(self, instance_video_path: str, origin_id: str):
+    def __init__(self, instance_video_path: str, origin_id: Optional[str]=''):
         print('file exists: ', os.path.isfile(instance_video_path))
         head, tail = os.path.split(instance_video_path)
         self.instance_path = head
         self.vidpath = instance_video_path
         self.video_file_name = tail
         try: 
-            probe = ffmpeg.probe(self.video_path)
+            probe = ffmpeg.probe(instance_video_path)
             print(probe)
         except Exception as e1:
             print("Exception ocurred:", e1)
@@ -289,10 +297,10 @@ if __name__ == "__main__":
                 description = model.describe(frame_path=frame_path)
                 descriptions_per_model.append(description)
             df[f'{desc_model}'] = descriptions_per_model
-            os.makedirs(os.path.join(vid.dir, 'desc_evecs', f'{desc_model}')) # creates a directory for the embeddings for each descriptor
+            os.makedirs(os.path.join(vid.dir(), 'desc_evecs', f'{desc_model}')) # creates a directory for the embeddings for each descriptor
 
         # saves the dataframe to te instance directory
-        df_output_path = os.path.join(vid.dir, 'instance_data.csv')
+        df_output_path = os.path.join(vid.dir(), 'instance_data.csv')
         df.to_csv(df_output_path, index=True)     
 
         # This section gets the embedding vector of each frames description, 
@@ -306,11 +314,11 @@ if __name__ == "__main__":
                     desc_evec = embedder.compute_embedding(desc)
                     desc_evec_array[i] = desc_evec
                     i += 1
-                output_desc_evec = os.path.join(vid.dir, 'desc_evecs', f'{desc_model}', f'{str(model).replace('/','')}.npy')
+                output_desc_evec = os.path.join(vid.dir(), 'desc_evecs', f'{desc_model}', f'{str(model).replace('/','')}.npy')
                 np.save(file=output_desc_evec, arr=desc_evec_array)
         
         # This section gets the embedding vector for each frame model by model
-        os.makedirs(os.path.join(vid.dir, 'img_evecs'))
+        os.makedirs(os.path.join(vid.dir(), 'img_evecs'))
         for model, origin in zip(FRAME_EMBEDDERS['model'],FRAME_EMBEDDERS['model_origin']):
             embedder = img_embedder(model, origin)
             img_evec_array = np.empty(NUM_FRAMES, dtype=object)
@@ -319,7 +327,7 @@ if __name__ == "__main__":
                 img_evec = img_embedder.compute_embedding(frame, 'GAP')
                 img_evec_array[i] = img_evec
                 i += 1
-            output_img_evec = os.path.join(vid.dir, 'img_evecs', f'{str(model).replace('/','')}.npy')
+            output_img_evec = os.path.join(vid.dir(), 'img_evecs', f'{str(model).replace('/','')}.npy')
             np.save(file=output_img_evec, arr=img_evec_array)
         
 
