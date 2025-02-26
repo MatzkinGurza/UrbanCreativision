@@ -1,6 +1,7 @@
 # IMPORTS
 
 import os
+import time 
 import glob
 import random
 import ffmpeg
@@ -10,12 +11,13 @@ from keras.layers import Flatten, GlobalAveragePooling2D, GlobalMaxPooling2D
 import imageio
 import pandas as pd
 import ollama
+from PIL import Image
+from io import BytesIO
+import base64
 import torch
 import clip
 import numpy as np
-from PIL import Image
 
-        
 
 # FUNCTIONS
 
@@ -58,9 +60,22 @@ def instance_build(video_files: list[str], build_id: Optional[str] = '') -> list
         instance_counter += 1
     return video_instances
 
+def img_to_base64(pil_image):
+    """
+    Convert PIL images to Base64 encoded strings
+
+    :param pil_image: PIL image
+    :return: Re-sized Base64 string
+    """
+
+    buffered = BytesIO()
+    pil_image.save(buffered, format="JPEG")  # You can change the format if needed
+    img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+    return img_str
+
 def save_frame(frame, output_dir, frame_id, video_id) -> str:
     try:
-        output_path = os.path.join(output_dir, f'{video_id}_{frame_id}.jpg')
+        output_path = os.path.join(output_dir, f'frame_{frame_id}_{video_id}.jpg')
         imageio.imwrite(output_path, frame)
     except Exception as e:
         print("There was an exception: ", e)
@@ -162,19 +177,12 @@ class video:
 class descriptor:
     def __init__(self, model_name: str):
         self.model_name = model_name
-        self.session = ollama.ChatSession(model=model_name)
 
-    def describe(self, frame_path):
-        with open(frame_path, "rb") as frame_file:
-            image_bytes = frame_file.read()
-
-        response = self.session.send_message({
-            "role": "user",
-            "content": "Describe this image in detail.",
-            "images": [image_bytes]  # Send the image as input
-        })
-        return response["message"]["content"]
-
+    def describe(self, frame: Image.Image, prompt: Optional[str] = "Describe the image: "):
+        imgb64 = img_to_base64(frame)
+        response = ollama.generate(model=self.model_name, prompt=prompt, images=[imgb64])
+        return response['response']
+    
 class text_embedder:
     def __init__(self, model, origin):
         """
@@ -189,10 +197,6 @@ class text_embedder:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
             self.model, self.preprocess = clip.load(model, device=self.device)
         
-        elif self.model_origin == 'ollama':
-            # Keep Ollama model loaded in memory
-            self.session = ollama.EmbeddingSession(model=model)
-        
     def compute_embedding(self, text: str):
         """
         Compute the embedding for a given text.
@@ -205,8 +209,8 @@ class text_embedder:
             return text_embedding.cpu().numpy()
         
         elif self.model_origin == 'ollama':
-            res = self.session.get_embedding(prompt=text)  # Uses preloaded Ollama session
-            return np.array(res['embedding'])
+            res = ollama.embed(model=self.model_name, input=[text])  # Uses preloaded Ollama session
+            return np.array(res['embeddings'])
 
 class img_embedder:
     def __init__(self, model: str, origin: str):
@@ -242,6 +246,7 @@ class img_embedder:
             img_array = utils.img_to_array(img)  # Convert image to array and preprocess
             img_array = np.expand_dims(img_array, axis=0)
             preprocessed_img = self.preprocess_fn(img_array)
+            print('image preprocessed')
             feature_maps = self.model.predict(preprocessed_img) # Extract features with the model
             # Apply chosen pooling method
             lin_layer = {
@@ -252,12 +257,14 @@ class img_embedder:
             if lin_layer is None:
                 raise ValueError(f"Invalid linearization method: {lin_method}")
             tensor = lin_layer(feature_maps)
+            print('embedding tensor computed')
             return tensor.numpy()
         elif self.model_origin == 'clip':
             # Preprocess image and compute CLIP embedding
             img_clip = self.preprocess_fn(img).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 image_features = self.model.encode_image(img_clip)
+            print('embedding tensor computed')
             return image_features.cpu().numpy()  # Convert to NumPy array
         else:
             raise ValueError(f"Unknown model origin: {self.model_origin}")
@@ -266,6 +273,8 @@ class img_embedder:
 # MAIN
 
 if __name__ == "__main__":
+
+    start_build = time.time()
 
     # Global especifications
     NUM_FRAMES = 5 # number of frames to be extracted at random per video
@@ -281,6 +290,8 @@ if __name__ == "__main__":
         print("The specified directory does not exist.")
     video_file_paths = instance_build(video_file_paths)
 
+    instance_counter = 0
+
     # this section runs the program for each instance found in the previous directory search
     for vidpath in video_file_paths:
         vid = video(vidpath)
@@ -290,14 +301,27 @@ if __name__ == "__main__":
         df.index = list(range(len(frame_paths)))
         
         # section destined to extracting all descriptions from the frame set obtained
+        section_start = time.time()
         for desc_model in DESC_MODELS: 
             model = descriptor(desc_model)
             descriptions_per_model = []
-            for frame_path in frame_paths:
-                description = model.describe(frame_path=frame_path)
+            i = 1
+            model_start = time.time()
+            for frame in frame_ram:
+                start = time.time()
+                print(f"{desc_model} is describing frame... {i}/{NUM_FRAMES} ")
+                description = model.describe(frame=frame)
                 descriptions_per_model.append(description)
+                end = time.time()
+                elapsed_short = end - start
+                elapsed_long = end - model_start
+                print(f"frame {i}/{NUM_FRAMES} described in {elapsed_short:.6f} seconds\ntotal model ({desc_model}) time until now: {elapsed_long:.6f}")
+                i += 1
             df[f'{desc_model}'] = descriptions_per_model
             os.makedirs(os.path.join(vid.dir(), 'desc_evecs', f'{desc_model}')) # creates a directory for the embeddings for each descriptor
+        section_end = time.time()
+        elapsed_section = section_end - section_start
+        print( f"description section finished executing in  {elapsed_section:.6f}")
 
         # saves the dataframe to te instance directory
         df_output_path = os.path.join(vid.dir(), 'instance_data.csv')
@@ -305,6 +329,8 @@ if __name__ == "__main__":
 
         # This section gets the embedding vector of each frames description, 
         # desc_model by desc_model for all description embedding models
+        print("Starting embedding section for the descriptions previously generated...")
+        start = time.time()
         for model, origin in zip(DESC_EMBEDDERS['model'],DESC_EMBEDDERS['model_origin']):
             embedder = text_embedder(model, origin)
             for desc_model in DESC_MODELS:
@@ -316,18 +342,39 @@ if __name__ == "__main__":
                     i += 1
                 output_desc_evec = os.path.join(vid.dir(), 'desc_evecs', f'{desc_model}', f'{str(model).replace('/','')}.npy')
                 np.save(file=output_desc_evec, arr=desc_evec_array)
-        
+        end = time.time()
+        elapsed = end - start
+        print( f"Finished embedding section for the descriptions previously generated after: {elapsed:.6f} seconds")
+
+
         # This section gets the embedding vector for each frame model by model
+        print("Starting embedding section for all of the frames...")
+        start = time.time()
         os.makedirs(os.path.join(vid.dir(), 'img_evecs'))
         for model, origin in zip(FRAME_EMBEDDERS['model'],FRAME_EMBEDDERS['model_origin']):
             embedder = img_embedder(model, origin)
             img_evec_array = np.empty(NUM_FRAMES, dtype=object)
             i = 0
             for frame in frame_ram:
-                img_evec = img_embedder.compute_embedding(frame, 'GAP')
+                start_img_evec = time.time()
+                img_evec = embedder.compute_embedding(img=frame, lin_method='GAP')
                 img_evec_array[i] = img_evec
                 i += 1
+                end_img_evec = time.time()
+                elapsed_img_evec = end_img_evec - start_img_evec
+                print( f"frame {i}/{NUM_FRAMES} was embeded by {model} in {elapsed_img_evec:.6f} seconds...")
             output_img_evec = os.path.join(vid.dir(), 'img_evecs', f'{str(model).replace('/','')}.npy')
             np.save(file=output_img_evec, arr=img_evec_array)
-        
+            
+
+        end = time.time()
+        elapsed = end - start
+        print( f"Finished embedding section for all of the frames after: {elapsed:.6f} seconds")
+
+        print( f"Succesfully finished building instance {instance_counter}")
+    
+    end_build = time.time()
+    elapsed_build = end_build - start_build
+
+    print( f"Succesfully finished complete build in {elapsed_build:.6f} seconds")
 
