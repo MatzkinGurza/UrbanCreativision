@@ -7,7 +7,8 @@ import random
 import ffmpeg
 from typing import Literal, Optional
 from keras import applications, utils
-from keras.layers import Flatten, GlobalAveragePooling2D, GlobalMaxPooling2D
+import tensorflow as tf
+from tensorflow.keras.layers import Flatten, GlobalAveragePooling2D, GlobalMaxPooling2D
 import imageio
 import pandas as pd
 import ollama
@@ -121,7 +122,10 @@ def get_specified_frames(frame_set: set[int], vid: 'video'):
     else:
         raise IndexError(f"Cannot have int in set bigger than {vid.frame_count()}, total frame number")
 
-    
+def resize_image(img, target_size=(224, 224)):
+    return img.resize(target_size)
+
+
 # CLASSES
 
 class video:
@@ -243,17 +247,22 @@ class img_embedder:
 
     def compute_embedding(self, img, lin_method:Literal['Flatten', 'GMP', 'GAP' ]):
         if self.model_origin == 'keras':
-            img_array = utils.img_to_array(img)  # Convert image to array and preprocess
+            img_resized = resize_image(img, (224, 224))
+            img_array = utils.img_to_array(img_resized)  # Convert image to array and preprocess
             img_array = np.expand_dims(img_array, axis=0)
+            print(f"image size after expand_dims: {img_array.shape}")
             preprocessed_img = self.preprocess_fn(img_array)
-            print('image preprocessed')
+            print(f"image size after preprocess_fn: {preprocessed_img.shape}")
+            print('image preprocessed, starting embedding...')
             feature_maps = self.model.predict(preprocessed_img) # Extract features with the model
             # Apply chosen pooling method
-            lin_layer = {
-                'GMP': GlobalMaxPooling2D(),
-                'GAP': GlobalAveragePooling2D(),
-                'Flatten': Flatten(),
-            }.get(lin_method)
+            if lin_method=='GAP':
+                lin_layer=GlobalAveragePooling2D()
+            elif lin_method=='GMP':
+                lin_layer=GlobalMaxPooling2D()
+            elif lin_method=='Flatten':
+                lin_layer=Flatten()
+            print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
             if lin_layer is None:
                 raise ValueError(f"Invalid linearization method: {lin_method}")
             tensor = lin_layer(feature_maps)
@@ -278,9 +287,9 @@ if __name__ == "__main__":
 
     # Global especifications
     NUM_FRAMES = 5 # number of frames to be extracted at random per video
-    DESC_MODELS = ['moondream', 'llava-llama3']
+    DESC_MODELS =  ['moondream'] # ['moondream', 'llava-llama3']
     DESC_EMBEDDERS = {"model":['mxbai-embed-large'], "model_origin":['ollama']}
-    FRAME_EMBEDDERS = {'model':["VGG16", "ViT-B/32"], 'model_origin':['keras', 'clip']}
+    FRAME_EMBEDDERS = {'model':["VGG16"], 'model_origin':['keras']} # {'model':["VGG16", "ViT-B/32"], 'model_origin':['keras', 'clip']}
 
     # Specify the root directory to start the search
     root_dir = input("Enter the root directory to search for videos: ").strip()
