@@ -56,8 +56,6 @@ def instance_build(video_files: list[str], build_id: Optional[str] = '') -> list
             print(f"Moved '{video_path}' to '{new_video_path}'")
         else:
             print(f"Error: Instance folder '{instance_folder}' was not created properly.")
-
-        print(f"Moved '{video_path}' to '{new_video_path}'")
         instance_counter += 1
     return video_instances
 
@@ -381,6 +379,7 @@ if __name__ == "__main__":
         print( f"Finished embedding section for all of the frames after: {elapsed:.6f} seconds")
 
         print( f"Succesfully finished building instance {instance_counter}")
+        instance_counter += 1
     
     end_build = time.time()
     elapsed_build = end_build - start_build
